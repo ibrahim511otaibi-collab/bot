@@ -12,7 +12,8 @@ const SPAM_EMOJIS = [
     '💎', '🔮', '🧿', '🪬', '🎊', '🎈', '🎀', '🎁', '🪄', '🏆', '🏅', '🥇', '🥈', '🥉'
 ];
 
-const proxyList = process.env.PROXY_LIST ? process.env.PROXY_LIST.split(',').map(p => p.trim()) : [];
+const proxyListEnv = process.env.PROXY_LIST || process.env.PROXY_URL;
+const proxyList = proxyListEnv ? proxyListEnv.split(',').map(p => p.trim()) : [];
 
 class InviteBot {
     constructor() {
