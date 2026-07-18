@@ -214,7 +214,21 @@ class InviteBot {
                 const proxyIP = p ? (p.includes('@') ? p.split('@')[1].split(':')[0] : (p.includes('://') ? p.split('://')[1].split(':')[0] : p.split(':')[0])) : 'بدون بروكسي';
                 let statusStr = this.isProcessingQueue ? 'يعمل 🟢' : 'متوقف 🔴';
                 if (this.isSleeping) statusStr = 'في استراحة 💤';
-                const report = `الحالة: ${statusStr}\nالطابور: ${this.queueLength} عضو\nالبروكسي: ${proxyIP}`;
+                
+                const sentToday = this.massSentToday + this.manualSentToday;
+                const nextSleep = this.sleepThreshold - this.messagesSentSinceWakeup;
+                
+                const report = `📊 تقرير البوت الشامل:
+                
+⚙️ الحالة: ${statusStr}
+🌐 البروكسي: ${proxyIP}
+
+📦 الطابور المتبقي: ${this.queueLength} عضو
+✅ أرسل اليوم: ${sentToday} رسالة
+
+⏱️ سرعة الإرسال: من ${this.minDelay/1000} إلى ${this.maxDelay/1000} ثواني
+💤 النوم القادم: بعد إرسال ${nextSleep} رسالة`;
+
                 await this.client.messaging.sendPrivateMessage(senderId, report);
             }
         });
