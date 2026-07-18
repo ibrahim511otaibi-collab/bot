@@ -89,7 +89,8 @@ class InviteBot {
                 global.GLOBAL_AGENT.HTTP_PROXY = randomProxy;
             }
             
-            this.addLog(`[!] تم اختيار بروكسي: ${randomProxy.split('@')[1] ? randomProxy.split('@')[1].split(':')[0] : 'بدون_بروكسي'}`);
+            const displayIp = randomProxy.includes('@') ? randomProxy.split('@')[1].split(':')[0] : (randomProxy.includes('://') ? randomProxy.split('://')[1].split(':')[0] : randomProxy.split(':')[0]);
+            this.addLog(`[!] تم اختيار بروكسي: ${displayIp}`);
         } else {
             this.addLog(`[!] تحذير: لا توجد بروكسيات في ملف .env`);
         }
@@ -208,7 +209,8 @@ class InviteBot {
                 await this.client.messaging.sendPrivateMessage(senderId, "تم إيقاف الإرسال مؤقتاً.");
                 this.addLog("[⏸] تم الإيقاف المؤقت عبر الشات.");
             } else if (text === 'وضع') {
-                const proxyIP = process.env.PROXY_URL ? process.env.PROXY_URL.split('@')[1]?.split(':')[0] : 'بدون بروكسي';
+                const p = process.env.PROXY_URL || '';
+                const proxyIP = p ? (p.includes('@') ? p.split('@')[1].split(':')[0] : (p.includes('://') ? p.split('://')[1].split(':')[0] : p.split(':')[0])) : 'بدون بروكسي';
                 let statusStr = this.isProcessingQueue ? 'يعمل 🟢' : 'متوقف 🔴';
                 if (this.isSleeping) statusStr = 'في استراحة 💤';
                 const report = `الحالة: ${statusStr}\nالطابور: ${this.queueLength} عضو\nالبروكسي: ${proxyIP}`;
