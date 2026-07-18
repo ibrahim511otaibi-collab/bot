@@ -80,7 +80,15 @@ class InviteBot {
 
         if (proxyList.length > 0) {
             const randomProxy = proxyList[Math.floor(Math.random() * proxyList.length)];
+            
+            // For wolf.js native WebSocket proxy
             process.env.PROXY_URL = randomProxy;
+            
+            // For all REST/HTTP traffic via global-agent
+            if (global.GLOBAL_AGENT) {
+                global.GLOBAL_AGENT.HTTP_PROXY = randomProxy;
+            }
+            
             this.addLog(`[!] تم اختيار بروكسي: ${randomProxy.split('@')[1] ? randomProxy.split('@')[1].split(':')[0] : 'بدون_بروكسي'}`);
         } else {
             this.addLog(`[!] تحذير: لا توجد بروكسيات في ملف .env`);
@@ -413,7 +421,13 @@ class InviteBot {
             if (this.queueLength > 0 && !this.isSleeping && this.isProcessingQueue) {
                 const delayMs = this.getRandomDelay(this.minDelay, this.maxDelay);
                 this.addLog(`[~] انتظار ${(delayMs / 1000).toFixed(1)} ثانية...`);
-                await this.delay(delayMs);
+                
+                const checkInterval = 1000;
+                let waited = 0;
+                while (waited < delayMs && this.isProcessingQueue && this.isRunning) {
+                    await this.delay(Math.min(checkInterval, delayMs - waited));
+                    waited += checkInterval;
+                }
             }
         }
 

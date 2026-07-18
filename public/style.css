@@ -189,6 +189,8 @@ body {
 
 /* ===== Forms ===== */
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.responsive-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start; }
+.input-group { display: flex; flex-direction: column; margin-bottom: 1rem; }
 .input-group { display: flex; flex-direction: column; margin-bottom: 1rem; }
 .input-group label { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.4rem; font-weight: 600; }
 
@@ -494,7 +496,7 @@ input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-colo
 /* ===== Responsive ===== */
 @media (max-width: 900px) {
     .stats-grid-4 { grid-template-columns: 1fr 1fr; }
-    .form-row { grid-template-columns: 1fr; }
+    .form-row, .responsive-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 700px) {
     :root { --sidebar-w: 60px; }

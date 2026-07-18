@@ -65,19 +65,27 @@ class DatabaseManager {
     }
 
     // يتحقق من مجموعة أشخاص ويُرجع فقط من لم يتم إرسال رسالة لهم مؤخراً
-    filterUnmessagedIds(targetIds, days = 7) {
-        return new Promise((resolve, reject) => {
-            if (!targetIds || targetIds.length === 0) return resolve([]);
-            const placeholders = targetIds.map(() => '?').join(',');
-            this.db.all(`SELECT target_id FROM history WHERE target_id IN (${placeholders}) AND timestamp >= datetime('now', 'localtime', '-${days} days')`, targetIds, (err, rows) => {
-                if (err) reject(err);
-                else {
-                    const messagedIds = rows.map(r => r.target_id);
-                    const cleanIds = targetIds.filter(id => !messagedIds.includes(id));
-                    resolve(cleanIds);
-                }
+    async filterUnmessagedIds(targetIds, days = 7) {
+        if (!targetIds || targetIds.length === 0) return [];
+        const chunkSize = 900;
+        let cleanIds = [];
+        
+        for (let i = 0; i < targetIds.length; i += chunkSize) {
+            const chunk = targetIds.slice(i, i + chunkSize);
+            const placeholders = chunk.map(() => '?').join(',');
+            
+            const chunkCleanIds = await new Promise((resolve, reject) => {
+                this.db.all(`SELECT target_id FROM history WHERE target_id IN (${placeholders}) AND timestamp >= datetime('now', 'localtime', '-${days} days')`, chunk, (err, rows) => {
+                    if (err) reject(err);
+                    else {
+                        const messagedIds = rows.map(r => r.target_id);
+                        resolve(chunk.filter(id => !messagedIds.includes(id)));
+                    }
+                });
             });
-        });
+            cleanIds = cleanIds.concat(chunkCleanIds);
+        }
+        return cleanIds;
     }
 
     // يتحقق هل تم إرسال رسالة لهذا الشخص خلال 7 أيام
@@ -121,36 +129,54 @@ class DatabaseManager {
     }
 
     // يجلب سجل آخر سحب لقائمة غرف
-    getRoomScrapeLogs(channelIds) {
-        return new Promise((resolve, reject) => {
-            if (!channelIds || channelIds.length === 0) return resolve([]);
-            const placeholders = channelIds.map(() => '?').join(',');
-            this.db.all(`
-                SELECT channel_id, last_scraped, members_scraped, members_added
-                FROM room_scrape_log
-                WHERE channel_id IN (${placeholders})
-            `, channelIds, (err, rows) => {
-                if (err) reject(err);
-                else resolve(rows || []);
+    async getRoomScrapeLogs(channelIds) {
+        if (!channelIds || channelIds.length === 0) return [];
+        const chunkSize = 900;
+        let allRows = [];
+        
+        for (let i = 0; i < channelIds.length; i += chunkSize) {
+            const chunk = channelIds.slice(i, i + chunkSize);
+            const placeholders = chunk.map(() => '?').join(',');
+            
+            const chunkRows = await new Promise((resolve, reject) => {
+                this.db.all(`
+                    SELECT channel_id, last_scraped, members_scraped, members_added
+                    FROM room_scrape_log
+                    WHERE channel_id IN (${placeholders})
+                `, chunk, (err, rows) => {
+                    if (err) reject(err);
+                    else resolve(rows || []);
+                });
             });
-        });
+            allRows = allRows.concat(chunkRows);
+        }
+        return allRows;
     }
 
     // ===== دوال الطابور الجديد (Queue System) =====
 
     // إضافة مجموعة أعضاء للطابور وتجاهل الموجودين
-    addToQueueBatch(targetIds) {
-        return new Promise((resolve, reject) => {
-            if (!targetIds || targetIds.length === 0) return resolve(0);
-            const placeholders = targetIds.map(() => '(?)').join(',');
-            this.db.run(`
-                INSERT OR IGNORE INTO invite_queue (target_id)
-                VALUES ${placeholders}
-            `, targetIds, function(err) {
-                if (err) reject(err);
-                else resolve(this.changes);
+    async addToQueueBatch(targetIds) {
+        if (!targetIds || targetIds.length === 0) return 0;
+        const chunkSize = 900;
+        let totalChanges = 0;
+
+        for (let i = 0; i < targetIds.length; i += chunkSize) {
+            const chunk = targetIds.slice(i, i + chunkSize);
+            const placeholders = chunk.map(() => '(?)').join(',');
+            
+            const changes = await new Promise((resolve, reject) => {
+                this.db.run(`
+                    INSERT OR IGNORE INTO invite_queue (target_id)
+                    VALUES ${placeholders}
+                `, chunk, function(err) {
+                    if (err) reject(err);
+                    else resolve(this.changes);
+                });
             });
-        });
+            totalChanges += changes;
+        }
+        return totalChanges;
     }
 
     // معاينة أقدم عضو بالطابور بدون حذفه

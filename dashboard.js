@@ -4,8 +4,20 @@ import { fileURLToPath } from 'url';
 import { inviteBot } from './inviteBotManager.js';
 import dbManager from './DatabaseManager.js';
 import dotenv from 'dotenv';
+import rateLimit from 'express-rate-limit';
+import 'global-agent/bootstrap.js';
 
 dotenv.config();
+
+// Auto-Recovery Error Handlers
+process.on('uncaughtException', (err) => {
+    console.error('[Error] Uncaught Exception:', err.message);
+    inviteBot.addLog(`[Error] حدث خطأ غير متوقع: ${err.message}`);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('[Error] Unhandled Rejection at:', promise, 'reason:', reason);
+});
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,7 +28,19 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// مسار للتحقق من كلمة المرور (Auth Middleware)
+// جدار حماية بسيط لمنع التخمين (Rate Limiter)
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 دقيقة
+    max: 10, // 10 محاولات فقط
+    message: { success: false, message: "تم تجاوز الحد الأقصى للمحاولات، الرجاء الانتظار 15 دقيقة." }
+});
+
+const apiLimiter = rateLimit({
+    windowMs: 5 * 60 * 1000,
+    max: 200,
+    message: { success: false, message: "تم تجاوز حد الطلبات العامة." }
+});
+
 const authMiddleware = (req, res, next) => {
     const providedPassword = req.headers['x-api-password'] || req.query.apiPassword || req.body.apiPassword;
     const correctPassword = process.env.API_PASSWORD;
@@ -27,6 +51,7 @@ const authMiddleware = (req, res, next) => {
     next();
 };
 
+app.use('/api', apiLimiter);
 app.use('/api', authMiddleware);
 
 app.get('/api/status', (req, res) => {
@@ -37,7 +62,7 @@ app.get('/api/logs', (req, res) => {
     res.json({ logs: inviteBot.logs });
 });
 
-app.post('/api/start', async (req, res) => {
+app.post('/api/start', authLimiter, async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) {
         return res.status(400).json({ success: false, message: "الرجاء إدخال الإيميل وكلمة المرور" });
@@ -46,7 +71,7 @@ app.post('/api/start', async (req, res) => {
     res.json(result);
 });
 
-app.post('/api/start-token', async (req, res) => {
+app.post('/api/start-token', authLimiter, async (req, res) => {
     const { token } = req.body;
     if (!token) {
         return res.status(400).json({ success: false, message: "الرجاء توفير التوكن" });

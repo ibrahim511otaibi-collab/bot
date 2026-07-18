@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "type": "module",
-    "engines": {
+  "engines": {
     "node": "20.x"
   },
   "scripts": {
@@ -17,7 +17,10 @@
   "dependencies": {
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "express-rate-limit": "^7.1.5",
+    "global-agent": "^3.0.0",
     "jimp": "^0.22.12",
+    "socket.io": "^4.7.4",
     "sqlite3": "^6.0.1",
     "wolf.js": "^2.7.10"
   }
