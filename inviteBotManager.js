@@ -81,15 +81,15 @@ class InviteBot {
 
         if (proxyList.length > 0) {
             const randomProxy = proxyList[Math.floor(Math.random() * proxyList.length)];
-            
+
             // For wolf.js native WebSocket proxy
             process.env.PROXY_URL = randomProxy;
-            
+
             // For all REST/HTTP traffic via global-agent
             if (global.GLOBAL_AGENT) {
                 global.GLOBAL_AGENT.HTTP_PROXY = randomProxy;
             }
-            
+
             const displayIp = randomProxy.includes('@') ? randomProxy.split('@')[1].split(':')[0] : (randomProxy.includes('://') ? randomProxy.split('://')[1].split(':')[0] : randomProxy.split(':')[0]);
             this.addLog(`[!] تم اختيار بروكسي: ${displayIp}`);
         } else {
@@ -214,10 +214,10 @@ class InviteBot {
                 const proxyIP = p ? (p.includes('@') ? p.split('@')[1].split(':')[0] : (p.includes('://') ? p.split('://')[1].split(':')[0] : p.split(':')[0])) : 'بدون بروكسي';
                 let statusStr = this.isProcessingQueue ? 'يعمل 🟢' : 'متوقف 🔴';
                 if (this.isSleeping) statusStr = 'في استراحة 💤';
-                
+
                 const sentToday = this.massSentToday + this.manualSentToday;
                 const nextSleep = this.sleepThreshold - this.messagesSentSinceWakeup;
-                
+
                 const report = `📊 تقرير البوت الشامل:
                 
 ⚙️ الحالة: ${statusStr}
@@ -226,7 +226,7 @@ class InviteBot {
 📦 الطابور المتبقي: ${this.queueLength} عضو
 ✅ أرسل اليوم: ${sentToday} رسالة
 
-⏱️ سرعة الإرسال: من ${this.minDelay/1000} إلى ${this.maxDelay/1000} ثواني
+⏱️ سرعة الإرسال: من ${this.minDelay / 1000} إلى ${this.maxDelay / 1000} ثواني
 💤 النوم القادم: بعد إرسال ${nextSleep} رسالة`;
 
                 await this.client.messaging.sendPrivateMessage(senderId, report);
@@ -438,7 +438,7 @@ class InviteBot {
             if (this.queueLength > 0 && !this.isSleeping && this.isProcessingQueue) {
                 const delayMs = this.getRandomDelay(this.minDelay, this.maxDelay);
                 this.addLog(`[~] انتظار ${(delayMs / 1000).toFixed(1)} ثانية...`);
-                
+
                 const checkInterval = 1000;
                 let waited = 0;
                 while (waited < delayMs && this.isProcessingQueue && this.isRunning) {
@@ -480,6 +480,8 @@ class InviteBot {
             return { success: false, message: 'البوت غير مشغل' };
         }
         try {
+            // تفريغ الكاش الخاص بالغرف عشان يجيب الرومات الجديدة اللي دخلها البوت
+            this.client.channel.fetched = false;
             const channels = await this.client.channel.list();
             if (!channels || channels.length === 0) {
                 return { success: true, rooms: [] };
